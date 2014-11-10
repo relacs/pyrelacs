@@ -1,3 +1,4 @@
+from IPython import embed
 from collections import defaultdict
 import linecache
 import re
@@ -7,8 +8,8 @@ import numpy as np
 from collections import namedtuple
 from ast import literal_eval
 
-from pyRELACS.DataClasses.KeyLoaders import KeyFactory, parse_key, parse_stimuli_key, parse_ficurve_key
-from pyRELACS.DataClasses.MetaLoaders import parse_meta
+from .KeyLoaders import KeyFactory, parse_key, parse_stimuli_key, parse_ficurve_key
+from .MetaLoaders import parse_meta
 
 
 FileRange = namedtuple('FileRange', ['start', 'end', 'type'])
@@ -209,6 +210,8 @@ def load(filename):
         return SpikeFile(filename)
     elif re.match(".*samallspikes.*\.dat$", filename):
          return SpikeFile(filename)
+    elif re.match(".*beats-eod.*\.dat$", filename):
+         return BeatFile(filename)
     elif re.match(".*stimuli.*\.dat$", filename):
         return StimuliFile(filename)
     elif re.match(".*ficurves.*\.dat$", filename):
@@ -447,7 +450,17 @@ class StimuliFile(RelacsFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
+class BeatFile(RelacsFile):
+    def __init__(self, filename):
+        super(BeatFile, self).__init__(filename)
 
+    def _load(self, item_index, replace=True):
+        meta, key, data = super(BeatFile, self)._load(item_index, replace=False, loadkey=False)
+        key = parse_key(key, self.filename)
+        data = [[str2number(elem.strip()) for elem in line.strip().split()] for line in data]
+        if replace:
+            self.content[item_index] = (meta, key, data)
+        return meta, key, data
 
 
 
@@ -458,7 +471,7 @@ class FICurveFile(StimuliFile):
     def _load(self, item_index, replace=True):
         meta, key, data = super(StimuliFile, self)._load(item_index, replace=False, loadkey=False)
         key = parse_ficurve_key(key, self.filename)
-        data = [[str2number(elem.strip()) for elem in line.split('  ') if elem.strip()] for line in data]
+        data = np.array([[str2number(elem.strip()) for elem in line.split('  ') if elem.strip()] for line in data])
         if replace:
             self.content[item_index] = (meta, key, data)
         return meta, key, data
