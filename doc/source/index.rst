@@ -11,7 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-
+    DataClasses.rst
 
 Indices and tables
 ==================
