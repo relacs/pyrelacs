@@ -219,6 +219,8 @@ def load(filename):
         return SpikeFile(filename, mergetrials=False)
     elif re.match(".*ficurves.*\.dat$", filename):
         return FICurveFile(filename)
+    elif re.match(".*-events.dat", filename):
+        return EventFile(filename)
     else:
         return RelacsFile(filename)
 
@@ -465,6 +467,7 @@ class StimuliFile(RelacsFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
+
 class BeatFile(RelacsFile):
     def __init__(self, filename):
         super(BeatFile, self).__init__(filename)
@@ -473,6 +476,19 @@ class BeatFile(RelacsFile):
         meta, key, data = super(BeatFile, self)._load(item_index, replace=False, loadkey=False)
         key = parse_key(key, self.filename)
         data = [[str2number(elem.strip()) for elem in line.strip().split()] for line in data]
+        if replace:
+            self.content[item_index] = (meta, key, data)
+        return meta, key, data
+
+
+class EventFile(RelacsFile):
+    def __init__(self, filename):
+        super(EventFile, self).__init__(filename)
+
+    def _load(self, item_index, replace=True):
+        meta, key, data = super(EventFile, self)._load(item_index, replace=False, loadkey=False)
+        key = parse_key(key, self.filename)
+        data = np.asarray([[str2number(elem.strip()) for elem in line.strip().split()] for line in data])
         if replace:
             self.content[item_index] = (meta, key, data)
         return meta, key, data
