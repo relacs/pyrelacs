@@ -215,6 +215,8 @@ def load(filename):
          return BeatFile(filename)
     elif re.match(".*stimuli.*\.dat$", filename):
         return StimuliFile(filename)
+    elif re.match(".*fispikes.*\.dat$", filename):
+        return SpikeFile(filename, mergetrials=False)
     elif re.match(".*ficurves.*\.dat$", filename):
         return FICurveFile(filename)
     else:
