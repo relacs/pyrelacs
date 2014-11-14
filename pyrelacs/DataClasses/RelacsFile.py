@@ -49,7 +49,8 @@ def parse_metadata_hierarchy(structure):
         if structure[0].type == 'meta':
             ret.append(MetaDataBlock(s, parse_metadata_hierarchy(structure)))
         elif structure[0].type == 'data':
-            ret.append(MetaDataBlock(s, structure.pop(0)))
+            while len(structure) > 0 and structure[0].type == 'data':
+                ret.append(MetaDataBlock(s, structure.pop(0)))
         else:
             raise TypeError('Expect either data or meta element!')
 
@@ -59,7 +60,7 @@ def parse_metadata_hierarchy(structure):
 def get_properties(meta, parent=None):
     ret = set()
     if parent is None: parent = tuple()
-#    print meta
+    # print meta
     for m,v in meta.iteritems():
         if type(v) == types.DictionaryType:
             ret.update(get_properties(v, parent + (m,)))
@@ -129,18 +130,17 @@ def parse_structure(filename, verbose=False):
     with open(filename, 'r') as fid:
         for line_no, line in enumerate(fid):
             line = line.rstrip().lstrip()
-
             if not line:  # something ends
                 if within_data_block:
                     structure.append(FileRange(start, line_no, 'data'))
                     within_data_block = False
-                    if verbose: print("DATA END", line[:20])
+                    if verbose: print("DATA END", line[:20], line_no)
                 if within_meta_block:
                     structure.append(FileRange(start, line_no, 'meta'))
-                    if verbose: print("META END", line[:20])
+                    if verbose: print("META END", line[:20], line_no)
                     within_meta_block = False
                 if within_key:
-                    if verbose: print("KEY END", line[:20])
+                    if verbose: print("KEY END", line[:20], line_no)
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
                 start = None
@@ -148,7 +148,7 @@ def parse_structure(filename, verbose=False):
 
             elif line.startswith('#'):
                 if line.startswith('#Key'):
-                    if verbose: print("KEY START", line[:20])
+                    if verbose: print("KEY START", line[:20], line_no)
                     within_key = True
                     start = line_no
                     continue
@@ -157,27 +157,27 @@ def parse_structure(filename, verbose=False):
                 elif within_meta_block:
                     continue
                 else:  # meta block starts
-                    if verbose: print("META START", line[:20])
+                    if verbose: print("META START", line[:20], line_no)
                     start = line_no
                     within_meta_block = True
             else:  # line is not empty and does not start with #
                 if within_meta_block:
-                    if verbose: print("META END", line[:20])
+                    if verbose: print("META END", line[:20], line_no)
                     structure.append(FileRange(start, line_no, 'meta'))
                     within_meta_block = False
                 if within_key:
-                    if verbose: print("KEY END", line[:20])
+                    if verbose: print("KEY END", line[:20], line_no)
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
 
                 if not within_data_block:
                     start = line_no
-                    if verbose: print("DATA START", line[:20])
+                    if verbose: print("DATA START", line[:20], line_no)
                     within_data_block = True
 
         else:  # for loop ends
             if within_data_block:
-                if verbose: print("DATA END and FILE END", line[:20])
+                if verbose: print("DATA END and FILE END", line[:20], line_no)
                 within_data_block = False
                 structure.append(FileRange(start, line_no+1, 'data'))
     return structure, keys
@@ -185,6 +185,7 @@ def parse_structure(filename, verbose=False):
 def relacs_file_factory(obj, mergetrials=False):
     structure, keys = parse_structure(obj.filename)
     hierarchy = parse_metadata_hierarchy(structure)
+
     key_factory = KeyFactory(keys, obj.filename)
     ret, fields = hierarchy2datablocks(hierarchy, key_factory, obj.filename)
     if mergetrials:
