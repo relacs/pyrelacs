@@ -38,14 +38,14 @@ def parse_stimuli_key(block, file):
     channel_pos = get_positions(lines[1][1:], channels)
     trace_pos = get_positions(lines[0][1:], traces)
     tmp = [(traces[dummy[2]], channels[dummy[1]], names[dummy[0]]) for dummy in position_equalizer(name_pos, channel_pos, trace_pos)]
-    keys = [a+b for a,b in zip(tmp, zip(units, idx))]
+    keys = [a+b for a,b in zip(tmp, list(zip(units, idx)))]
     return keys
 
 def parse_ficurve_key(block, file):
     lines = [linecache.getline(file, i + 1) for i in range(block.start+1, block.end)]
     units = [elem.strip() for elem in lines[1][1:].split('  ') if elem.strip()]
     names = [elem.strip() for elem in lines[0][1:].split('  ') if elem.strip()]
-    return zip(names, units)
+    return list(zip(names, units))
 
 
 def parse_key(block, file):
@@ -56,7 +56,7 @@ def parse_key(block, file):
     :return: parsed key information as a list of tuples
     """
     lines = [linecache.getline(file, i + 1) for i in range(block.start, block.end)]
-    return zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]])
+    return list(zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]]))
 
 
 class KeyFactory:
@@ -81,7 +81,7 @@ class KeyFactory:
         self.file = file
 
     def __call__(self, elem):
-        if type(elem) == types.ListType:
+        if type(elem) == list:
             self.current_key = None
             return self
         else:

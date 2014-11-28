@@ -11,7 +11,8 @@ from pint import UnitRegistry
 import nix
 
 
-from pyRELACS.DataClasses.RelacsFile import load, RelacsFile
+from pyrelacs.DataClasses import load
+from pyrelacs.DataClasses.RelacsFile import RelacsFile
 
 ureg = UnitRegistry()
 

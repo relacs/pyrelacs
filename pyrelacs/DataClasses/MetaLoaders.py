@@ -18,9 +18,9 @@ def flatten_dict(d, prefix=None):
     """
     if prefix is None: prefix = []
     ret = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
         k = re.sub('[^0-9a-zA-Z_]+', '', k.lower().replace(" ", "_"))
-        if type(v) == types.DictionaryType:
+        if type(v) == dict:
             ret.update(flatten_dict(v, prefix + [k]))
         else:
             ret["__".join(prefix + [k])] = v
