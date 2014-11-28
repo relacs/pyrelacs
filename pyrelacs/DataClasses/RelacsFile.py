@@ -1,7 +1,5 @@
-from IPython import embed
 from collections import defaultdict
 import linecache
-import re
 import types
 import warnings
 import numpy as np
@@ -60,8 +58,8 @@ def get_properties(meta, parent=None):
     ret = set()
     if parent is None: parent = tuple()
 #    print meta
-    for m,v in meta.iteritems():
-        if type(v) == types.DictionaryType:
+    for m,v in meta.items():
+        if type(v) == dict:
             ret.update(get_properties(v, parent + (m,)))
         else:
             ret.add(parent + (m,))
@@ -98,7 +96,7 @@ def parse_metadata_data_block(block, key_factory, filename, inherited_props=None
             tmp.update(meta)
             meta = tmp
 
-        if type(block.data) == types.ListType:
+        if type(block.data) == list:
             ret = []
             for b in block.data:
                 ret.extend(parse_metadata_data_block(b, key_factory, filename, meta))
@@ -121,7 +119,7 @@ def parse_structure(filename, verbose=False):
     >>> structure, keys = parse_structure('stimspikes1.dat')
 
     """
-    if verbose: print filename, 80*'-'
+    if verbose: print(filename, 80*'-')
     within_key = within_meta_block = within_data_block = False
     start = None
     structure = []
@@ -134,13 +132,13 @@ def parse_structure(filename, verbose=False):
                 if within_data_block:
                     structure.append(FileRange(start, line_no, 'data'))
                     within_data_block = False
-                    if verbose: print "DATA END", line[:20]
+                    if verbose: print("DATA END", line[:20])
                 if within_meta_block:
                     structure.append(FileRange(start, line_no, 'meta'))
-                    if verbose: print "META END", line[:20]
+                    if verbose: print("META END", line[:20])
                     within_meta_block = False
                 if within_key:
-                    if verbose: print "KEY END", line[:20]
+                    if verbose: print("KEY END", line[:20])
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
                 start = None
@@ -148,7 +146,7 @@ def parse_structure(filename, verbose=False):
 
             elif line.startswith('#'):
                 if line.startswith('#Key'):
-                    if verbose: print  "KEY START", line[:20]
+                    if verbose: print("KEY START", line[:20])
                     within_key = True
                     start = line_no
                     continue
@@ -157,27 +155,27 @@ def parse_structure(filename, verbose=False):
                 elif within_meta_block:
                     continue
                 else:  # meta block starts
-                    if verbose: print "META START", line[:20]
+                    if verbose: print("META START", line[:20])
                     start = line_no
                     within_meta_block = True
             else:  # line is not empty and does not start with #
                 if within_meta_block:
-                    if verbose: print "META END", line[:20]
+                    if verbose: print("META END", line[:20])
                     structure.append(FileRange(start, line_no, 'meta'))
                     within_meta_block = False
                 if within_key:
-                    if verbose: print "KEY END", line[:20]
+                    if verbose: print("KEY END", line[:20])
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
 
                 if not within_data_block:
                     start = line_no
-                    if verbose: print "DATA START", line[:20]
+                    if verbose: print("DATA START", line[:20])
                     within_data_block = True
 
         else:  # for loop ends
             if within_data_block:
-                if verbose: print  "DATA END and FILE END", line[:20]
+                if verbose: print("DATA END and FILE END", line[:20])
                 within_data_block = False
                 structure.append(FileRange(start, line_no+1, 'data'))
     return structure, keys
@@ -199,28 +197,17 @@ def relacs_file_factory(obj, mergetrials=False):
     for p, _, _ in obj.content:
         for f in fields:
             try:
-                obj.fields[f].add(get_nested_value(p, f))
+                tmp = get_nested_value(p, f)
+                if type(tmp) == list:
+                    tmp = tuple(tmp)
+                obj.fields[f].add(tmp)
             except KeyError:
                 pass
 
     return obj
 
-def load(filename):
-    if re.match(".*stimspikes.*\.dat$", filename):
-        return SpikeFile(filename)
-    elif re.match(".*samallspikes.*\.dat$", filename):
-         return SpikeFile(filename)
-    elif re.match(".*beats-eod.*\.dat$", filename):
-         return BeatFile(filename)
-    elif re.match(".*stimuli.*\.dat$", filename):
-        return StimuliFile(filename)
-    elif re.match(".*ficurves.*\.dat$", filename):
-        return FICurveFile(filename)
-    else:
-        return RelacsFile(filename)
-
 def get_nested_value(d, k):
-    if type(k) is types.TupleType:
+    if type(k) is tuple:
         ret = d
         for kk in k:
             ret = ret[kk]
@@ -239,10 +226,8 @@ def get_subkey_key_value_pairs(d, k):
 
     return ret_key, ret_val
 
-
-
 def subkey_field_match(d, selection):
-    for k, v in selection.iteritems():
+    for k, v in selection.items():
         keys, v2 = get_subkey_key_value_pairs(d,k)
 
         if len(keys) > 1:
@@ -256,7 +241,7 @@ def subkey_field_match(d, selection):
 
 def exact_nested_field_match(d, selection):
 
-    for k, v in selection.iteritems():
+    for k, v in selection.items():
         try:
             v2 = get_nested_value(d,k)
         except KeyError as e:
@@ -281,27 +266,6 @@ class RelacsFile(object):
     When a relacs file is instantiated, the data is not actually loaded. This happens lazyly in select where each item
     is loaded when it is requested. Once it is loaded it stays stored in the RelacsFile object.
 
-    Relacs files can have nested metadata properties. This hierarchy gets flattened and processed in the RelacsFile
-    object. For example  the metadata structure
-
-    Settings:
-        File: mystimulus.dat
-
-        contrast: 5%
-
-    becomes
-
-    >>> DataProperty(settings__files='mystimulus.dat', settings__contrast='5%')
-
-    where DataProperty is a namedtuple generated by the :func:`metadata_tuple_factory` factory. More specifically,
-
-    * nested metadata properties are joined with two underscores
-
-    * everything is conerted to lowercase
-
-    * non-alphanumeric characters and spaces are deleted
-
-
     """
 
     def __init__(self, filename):
@@ -314,7 +278,7 @@ class RelacsFile(object):
 
         for i, j in enumerate(idx):
             if isinstance(datas[i], FileRange) or \
-                    (type(datas[i]) == types.ListType and isinstance(datas[i][0], FileRange)):
+                    (type(datas[i]) == list and isinstance(datas[i][0], FileRange)):
                 _, keys[i], datas[i] = self._load(j)
 
 
@@ -338,8 +302,8 @@ class RelacsFile(object):
 
 
     def selectall(self):
-        metas, keys, datas = map(list, zip(*self.content))
-        idx = range(len(self.content))
+        metas, keys, datas = list(map(list, list(zip(*self.content))))
+        idx = list(range(len(self.content)))
         return self._finalize_selection(metas, keys, datas, idx)
 
 
@@ -374,7 +338,7 @@ class RelacsFile(object):
 
     def __str__(self):
         tmp = []
-        for k, v in self.fields.iteritems():
+        for k, v in self.fields.items():
             tmp.append("%s: %s" % (k, ", ".join(map(str, v)), ))
         return "%s with %i entries and field names:\n\t" % (self.__class__.__name__, len(self.content),) + "\n\t".join(
             tmp)
@@ -422,7 +386,7 @@ class SpikeFile(RelacsFile):
         meta, key, block = self.content[item_index]
 
         data = []
-        if type(block) == types.ListType:
+        if type(block) == list:
             for b in block:
                 tmp = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(b.start, b.end)])
                 data.append(tmp)
@@ -484,7 +448,7 @@ if __name__ == "__main__":
     # print data
 
     r = load('/home/fabee/data/carolin/2014-07-17-aa/samallspikes1.dat')
-    print r
+    print(r)
 
     # r = load('/home/fabee/data/carolin/2014-07-11-ab/stimuli.dat')
     # print r
