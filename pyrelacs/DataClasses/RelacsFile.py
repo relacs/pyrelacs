@@ -252,6 +252,18 @@ def exact_nested_field_match(d, selection):
     else:
         return True
 
+def get_unique_field(meta, pattern):
+    field = meta.matching_fields(pattern)
+    if  len(field) > 1:
+        raise ValueError("More than one field found for !" % (pattern, ))
+    elif len(field) == 1:
+        return field[0]
+    else:
+        return None
+
+
+def get_unique_value(meta, pattern):
+    return getattr(meta, get_unique_field(meta, pattern))
 
 class RelacsFile(object):
     """
@@ -439,25 +451,6 @@ class FICurveFile(StimuliFile):
         if replace:
             self.content[item_index] = (meta, key, data)
         return meta, key, data
-
-
-if __name__ == "__main__":
-    # r = load('/home/fabee/data/carolin/2014-07-11-ab/stimspikes1.dat')
-    # meta, key, data = r.select({('Settings', 'Stimulus', 'file'):'/home/efish/stimuli/whitenoise/gwn300Hz50s0.3.dat'})
-    # print r
-    # print data
-
-    r = load('/home/fabee/data/carolin/2014-07-17-aa/samallspikes1.dat')
-    print(r)
-
-    # r = load('/home/fabee/data/carolin/2014-07-11-ab/stimuli.dat')
-    # print r
-    # embed()
-    # meta, keys, data =  r.select({
-    #     ('dataset-2014-07-11-ab-FileStimulus-1 (dataset)', 'dataset-settings-2014-07-11-ab-FileStimulus-1 (settings)', 'Stimulus', 'file'): '/home/efish/stimuli/whitenoise/gwn300Hz50s0.3.dat'
-    # })
-    # print data
-
 
 def get_unique_field(meta, pattern):
     field = meta.matching_fields(pattern)
