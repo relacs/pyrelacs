@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import linecache
 from pprint import pprint
 import types
@@ -48,6 +49,9 @@ def parse_ficurve_key(block, file):
     return list(zip(names, units))
 
 
+def split_line(line):
+    return [e.strip() for e in line.split('  ') if e.strip()]
+
 def parse_key(block, file):
     """
     Parses the key information from the lines extracted from a relacs file.
@@ -56,7 +60,21 @@ def parse_key(block, file):
     :return: parsed key information as a list of tuples
     """
     lines = [linecache.getline(file, i + 1) for i in range(block.start, block.end)]
-    return list(zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]]))
+    item_count = [len(l[1:].split()) for l in lines[1:]]
+    if len(np.unique(item_count)) == 1: # if there are no keys that count for several below
+        return list(zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]]))
+    else:
+        lines2 = [l[1:].rstrip() for l in lines[1:]] # get rid of the #Key line, the #, and the line breaks
+        values = [split_line(line) for line in lines2]
+        positions = [get_positions(line, val) for line, val in zip(lines2, values)]
+
+        keys = []
+        for idx in position_equalizer(*positions[:-1]):
+            keys.append(tuple([vals[i] for i, vals in zip(idx, values)]))
+
+        # this takes care of the last non-aligned line
+        keys = [k + (v,) for k,v in zip(keys, split_line(lines2[-1]))]
+        return keys
 
 
 class KeyFactory:
