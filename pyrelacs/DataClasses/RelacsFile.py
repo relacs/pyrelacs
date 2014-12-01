@@ -207,6 +207,19 @@ def relacs_file_factory(obj, mergetrials=False):
 
     return obj
 
+def get_unique_field(meta, pattern):
+    field = meta.matching_fields(pattern)
+    if  len(field) > 1:
+        raise ValueError("More than one field found for !" % (pattern, ))
+    elif len(field) == 1:
+        return field[0]
+    else:
+        return None
+
+
+def get_unique_value(meta, pattern):
+    return getattr(meta, get_unique_field(meta, pattern))
+
 def get_nested_value(d, k):
     if type(k) is tuple:
         ret = d
@@ -441,6 +454,18 @@ class BeatFile(RelacsFile):
         return meta, key, data
 
 
+class TraceFile(RelacsFile):
+    def __init__(self, filename):
+        super(TraceFile, self).__init__(filename)
+
+    def _load(self, item_index, replace=True):
+        meta, key, data = super(TraceFile, self)._load(item_index, replace=False, loadkey=False)
+        key = parse_key(key, self.filename)
+        data = np.asarray([[str2number(elem.strip()) for elem in line.strip().split()] for line in data])
+        if replace:
+            self.content[item_index] = (meta, key, data)
+        return meta, key, data
+
 class EventFile(RelacsFile):
     def __init__(self, filename):
         super(EventFile, self).__init__(filename)
@@ -467,15 +492,4 @@ class FICurveFile(StimuliFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
-def get_unique_field(meta, pattern):
-    field = meta.matching_fields(pattern)
-    if  len(field) > 1:
-        raise ValueError("More than one field found for !" % (pattern, ))
-    elif len(field) == 1:
-        return field[0]
-    else:
-        return None
 
-
-def get_unique_value(meta, pattern):
-    return getattr(meta, get_unique_field(meta, pattern))

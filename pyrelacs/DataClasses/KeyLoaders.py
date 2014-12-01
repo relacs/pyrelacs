@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import linecache
 from pprint import pprint
 import types
@@ -48,6 +49,26 @@ def parse_ficurve_key(block, file):
     return list(zip(names, units))
 
 
+class PositionDict(dict):
+    def __missing__(self, key):
+        if not  type(key) == int:
+            raise ValueError("Key needs to be an int!")
+        if key in self:
+            return self[key]
+        else:
+            lk = -1
+            for k in sorted(self.keys()):
+                if k > key:
+                    return self[lk]
+                else:
+                    lk = k
+            else:
+                value = self[key] = None
+                return value
+
+def split_line(line):
+    return [e.strip() for e in line.split('  ') if e.strip()]
+
 def parse_key(block, file):
     """
     Parses the key information from the lines extracted from a relacs file.
@@ -56,7 +77,33 @@ def parse_key(block, file):
     :return: parsed key information as a list of tuples
     """
     lines = [linecache.getline(file, i + 1) for i in range(block.start, block.end)]
-    return list(zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]]))
+    item_count = [len(l[1:].split()) for l in lines[1:]]
+    if len(np.unique(item_count)) == 1: # if there are no keys that count for several below
+        return list(zip(*[[e.strip() for e in line[1:].split("  ") if len(e.strip()) > 0] for line in lines[1:]]))
+    else:
+        lines2 = [l[1:].rstrip() for l in lines[1:]] # get rid of the #Key line, the #, and the line breaks
+        posdicts = []
+        for line in lines2:
+            posdicts.append(PositionDict(OrderedDict([(line.index(item),item) for item in split_line(line)])))
+
+        lastline = OrderedDict([(item, lines2[-1].index(item)) for item in split_line(lines2[-1])])
+        keylines = [split_line(lines2[-1])]
+
+
+        for line, pdict in zip(lines2[-2::-1], posdicts[-2::-1]):
+            curr_line = split_line(line)
+            print(80*'-')
+            print(pdict)
+            if len(curr_line) != len(keylines[0]):
+                curr_line = [pdict[lastline[v]] for v in keylines[0]]
+            print(curr_line)
+            keylines.insert(0, curr_line)
+            lastline = OrderedDict([(item, line.index(item)) for item in split_line(line)])
+            embed()
+
+
+        exit()
+
 
 
 class KeyFactory:
