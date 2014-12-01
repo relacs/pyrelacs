@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 from collections import namedtuple
 from ast import literal_eval
+from IPython import embed
 
 from .KeyLoaders import KeyFactory, parse_key, parse_stimuli_key, parse_ficurve_key
 from .MetaLoaders import parse_meta
@@ -311,6 +312,9 @@ class RelacsFile(object):
 
         return metas, keys, datas
 
+    def data_blocks(self):
+        for i in range(len(self.content)):
+            yield self._load(i)
 
     def select(self, selection=None, **kwargs):
         ret = self._select(exact_nested_field_match, selection, **kwargs)
@@ -459,8 +463,7 @@ class TraceFile(RelacsFile):
         super(TraceFile, self).__init__(filename)
 
     def _load(self, item_index, replace=True):
-        meta, key, data = super(TraceFile, self)._load(item_index, replace=False, loadkey=False)
-        key = parse_key(key, self.filename)
+        meta, key, data = super(TraceFile, self)._load(item_index, replace=False, loadkey=True)
         data = np.asarray([[str2number(elem.strip()) for elem in line.strip().split()] for line in data])
         if replace:
             self.content[item_index] = (meta, key, data)
