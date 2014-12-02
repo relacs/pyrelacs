@@ -6,8 +6,6 @@ def trial_iterator(multi_tag):
     traces = {r.name:np.asarray(r.data) for r in multi_tag.references if r.dimensions[0].dimension_type.name == 'Set'}
 
     sample_interv = {r.name:r.dimensions[0].sampling_interval for r in multi_tag.references if r.dimensions[0].dimension_type.name == 'Sample'}
-    print sample_interv
-    print traces
     positions =  multi_tag.positions[:]
     extents =  multi_tag.extents[:]
     for i, (p, e) in enumerate(zip(positions, extents)):
@@ -41,7 +39,6 @@ def trial_iterator(multi_tag):
 if __name__=="__main__":
     import sys
     file = sys.argv[1]
-    print file
 
     nix_file = nix.File.open(file, nix.FileMode.ReadWrite)
     for block in [b for b in nix_file.blocks if 'FI-Curve' not in b.name]:

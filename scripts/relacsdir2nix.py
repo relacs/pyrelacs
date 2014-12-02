@@ -274,7 +274,7 @@ if __name__=="__main__":
 
     add_info(nix_file, relacsdir, recording_block)
 
-    nix_spiketimes = recording_block.create_data_array('spikes', 'nix.event.spiketimes', nix.DataType.Double, (0,0))
+    nix_spiketimes = recording_block.create_data_array('spikes', 'nix.event.spiketimes', nix.DataType.Double, (0,))
     nix_spiketimes.append_set_dimension()
 
     #------------ add fi curves-------------------
@@ -292,10 +292,7 @@ if __name__=="__main__":
         spike_times = np.hstack(spike_times)
         print "storing %i spikes" % (len(spike_times),)
         spike_times.sort()
-        try:
-            nix_spiketimes.data_extent = (1,) + spike_times.shape # this is not how it's ought to be
-            nix_spiketimes.data.write_direct(spike_times)
-        except:
-            embed()
+        nix_spiketimes.data_extent = spike_times.shape # this is not how it's ought to be
+        nix_spiketimes[:] = spike_times
 
     nix_file.close()
