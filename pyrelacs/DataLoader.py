@@ -119,7 +119,7 @@ def iload_trace_trials(basedir, trace_no):
         for col, duration in zip(asarray([e[trace_no - 1] for e in dat], dtype=int), asarray([e[duration_index] for e in dat], dtype=float32)):  #dat[:,trace_no-1].astype(int):
             tmp = x[col:col + l]
 
-            if duration < 1.: # if the duration is less than 1ms
+            if duration < 0.001: # if the duration is less than 1ms
                 warnings.warn("iload_trace_trials: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
                 continue
 
