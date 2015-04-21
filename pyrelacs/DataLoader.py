@@ -96,15 +96,19 @@ def iload_trace_trials(basedir, trace_no):
     for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
         X = []
         val, unit = p.match(info[-1]['duration']).groups()
+        if unit == 'ms' :
+            val *= 0.001
         duration_index = key[2].index('duration')
 
         # if 'RePro' in info[1] and info[1]['RePro'] == 'FileStimulus':
         #     embed()
         #     exit()
         sval, sunit = p.match(info[0]['sample interval%i' % trace_no]).groups()
+        sval = float( sval )
+        if sunit == 'ms' :
+            sval *= 0.001
 
-        assert unit == sunit, "Cannot convert between units in sampling interval and duration so far. "
-        l = int(float(val) / float(sval))
+        l = int(float(val) / sval)
 
         if dat.shape == (1,1) and dat[0,0] == 0:
             warnings.warn("iload_trace_trials: Encountered incomplete '-0' trial.")
