@@ -1,7 +1,7 @@
 import re
 from .RelacsFile import SpikeFile, BeatFile, StimuliFile, FICurveFile, RelacsFile, TraceFile
 
-#
+
 def load(filename):
     if re.match(".*stimspikes.*\.dat$", filename) or re.match(".*samallspikes.*\.dat$", filename):
         return SpikeFile(filename)
