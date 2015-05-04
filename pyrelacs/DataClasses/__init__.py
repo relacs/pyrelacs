@@ -15,7 +15,8 @@ def load(filename):
         return FICurveFile(filename)
     elif re.match(".*ficurve-.*\.dat$", filename) or re.match(".*vicurve-.*\.dat$", filename) \
             or re.match(".*transferfunction-data.*\.dat$", filename) \
-            or re.match(".*membraneresistance-trace.*\.dat$", filename):
+            or re.match(".*membraneresistance-trace.*\.dat$", filename) \
+            or re.match(".*membraneresistance-expfit.*\.dat$", filename):
         return TraceFile(filename)
     else:
         return RelacsFile(filename)
