@@ -1,5 +1,5 @@
 import re
-from .RelacsFile import SpikeFile, BeatFile, StimuliFile, FICurveFile, RelacsFile, TraceFile
+from .RelacsFile import SpikeFile, BeatFile, StimuliFile, FICurveFile, RelacsFile, TraceFile, InfoFile
 
 
 def load(filename):
@@ -13,6 +13,8 @@ def load(filename):
         return StimuliFile(filename)
     elif re.match(".*ficurves.*\.dat$", filename):
         return FICurveFile(filename)
+    elif re.match(".*info.*\.dat$", filename):
+        return InfoFile(filename)
     elif re.match(".*ficurve-.*\.dat$", filename) or re.match(".*vicurve-.*\.dat$", filename) \
             or re.match(".*transferfunction-data.*\.dat$", filename) \
             or re.match(".*membraneresistance-trace.*\.dat$", filename) \
