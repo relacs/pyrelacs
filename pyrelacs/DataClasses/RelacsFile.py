@@ -502,7 +502,7 @@ def read_info_file(file_name):
         for l in lines:
             if not l.startswith("#"):
                 continue
-            l = l.strip("#").strip()
+            l = l.strip("#").strip().strip(':')
             if len(l) == 0:
                 continue
             if not ": " in l:
