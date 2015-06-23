@@ -13,7 +13,8 @@ def load(filename):
         return StimuliFile(filename)
     elif re.match(".*ficurves.*\.dat$", filename):
         return FICurveFile(filename)
-    elif re.match(".*ficurve-.*\.dat$", filename) or re.match(".*vicurve-.*\.dat$", filename):
+    elif re.match(".*ficurve-.*\.dat$", filename) or re.match(".*vicurve-.*\.dat$", filename) or\
+            re.match(".*baseisih.*\.dat$", filename):
         return TraceFile(filename)
     else:
         return RelacsFile(filename)

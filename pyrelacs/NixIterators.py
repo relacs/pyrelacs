@@ -15,10 +15,7 @@ def trial_iterator(multi_tag):
             if dim.dimension_type.name == 'Set':
                 ret[r.name] = traces[r.name][(traces[r.name] >= p) & (traces[r.name] <= p+e)]
             else:
-                try:
-                    ret[r.name] = multi_tag.retrieve_data(i, ref_no)
-                except:
-                    embed()
+                ret[r.name] = multi_tag.retrieve_data(i, ref_no)
             ret['t'] = np.arange(p,p+e+sample_interv['V-1'],sample_interv['V-1'])
         yield ret
 

@@ -233,6 +233,29 @@ def add_ficurve(fifile, nix_file):
         insert_metadata(sec, fi_meta)
         block = None
 
+def add_baseline_isi(baselinefile, nix_file):
+    fi = load(baselinefile)
+
+    for i, (fi_meta, fi_key, fi_data) in enumerate(zip(*fi.selectall())):
+        secname = 'Baseline-ISI-Histogram-%i' % (i, )
+        block = nix_file.create_block(secname, 'nix.analysis')
+        fi_data = np.asarray(fi_data).T
+        for (name, unit), dat in zip(fi_key, fi_data):
+            if unit == 'HZ': unit = 'Hz' # fix bug in relacs
+
+            fi_curve_data = block.create_data_array(name, "nix.trace", nix.DataType.Double, dat.shape)
+            if unit != '1':
+                fi_curve_data.unit = unit
+            fi_curve_data.label = name
+            fi_curve_data.data[:] = dat.astype(float)
+            fi_curve_data = None
+
+        sec = nix_file.create_section(secname, "nix.metadata")
+        block.metadata = sec
+        insert_metadata(sec, fi_meta)
+        block = None
+
+
 if __name__=="__main__":
     #--------------------------------------------------------------------------------------------
     helptxt = """
@@ -262,6 +285,8 @@ if __name__=="__main__":
 
 
     nix_file = nix.File.open(nix_filename, nix.FileMode.Overwrite)
+
+
     stimuli = load(relacsdir + 'stimuli.dat')
     spike_times = []
     recordings_block_name = [e.strip() for e in relacsdir.split('/') if e][-1]
@@ -280,6 +305,12 @@ if __name__=="__main__":
     #------------ add fi curves-------------------
     for fifile in glob.glob(relacsdir + 'ficurves*.dat'):
         add_ficurve(fifile, nix_file)
+
+    #------------ add baseline isi curves-------------------
+    for isifile in glob.glob(relacsdir + 'baseisih*.dat'):
+        add_baseline_isi(isifile, nix_file)
+
+
     #------------ add filestimulus -------------------
     for spikefile in glob.glob(relacsdir + 'stimspikes*.dat'):
         add_spikes(stimuli, spikefile, spike_times, nix_file, nix_spiketimes)
