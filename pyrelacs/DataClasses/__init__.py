@@ -7,7 +7,7 @@ def load(filename):
         return read_info_file(filename)
     elif re.match(".*stimspikes.*\.dat$", filename) or re.match(".*samallspikes.*\.dat$", filename):
         return SpikeFile(filename)
-    elif re.match(".*ficurve-spikes.*\.dat$", filename):
+    elif re.match(".*ficurve-spikes.*\.dat$", filename) or re.match(".*stimulus-whitenoise-spikes.*\.dat$", filename):
          return SpikeFile(filename, mergetrials=False)
     elif re.match(".*beats-eod.*\.dat$", filename):
          return BeatFile(filename)
