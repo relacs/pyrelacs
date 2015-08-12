@@ -418,7 +418,10 @@ class SpikeFile(RelacsFile):
                 tmp = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(b.start, b.end)])
                 data.append(tmp)
         elif isinstance(block, FileRange):
-            data = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(block.start, block.end)])
+            try:
+                data = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(block.start, block.end)])
+            except:
+                data = (np.asarray([linecache.getline(self.filename, i + 1).strip().split() for i in range(block.start, block.end)])).astype(np.float)
 
         if loadkey:
             key = parse_key(key, self.filename)
