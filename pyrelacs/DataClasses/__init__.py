@@ -3,7 +3,8 @@ from .RelacsFile import SpikeFile, BeatFile, StimuliFile, FICurveFile, RelacsFil
 
 
 def load(filename):
-    if re.match(".*stimspikes.*\.dat$", filename) or re.match(".*samallspikes.*\.dat$", filename):
+    if re.match(".*stimspikes.*\.dat$", filename) or re.match(".*samallspikes.*\.dat$", filename) or \
+            re.match(".*basespikes.*\.dat$", filename):
         return SpikeFile(filename)
     elif re.match("ficurve-spikes.*\.dat$", filename):
          return SpikeFile(filename, mergetrials=False)
