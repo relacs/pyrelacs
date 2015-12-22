@@ -89,22 +89,34 @@ def iload_spike_blocks(filename):
 
 
 
-def iload_trace_trials(basedir, trace_no):
+def iload_trace_trials(basedir, trace_no=1, before=0.0, after=0.0 ):
+    """
+    returns:
+    info : metadata from stimuli.dat
+    key : key from stimuli.dat
+    data : the data of the specified trace of all trials
+    """
     x = fromfile('%s/trace-%i.raw' % (basedir, trace_no), float32)
     p = re.compile('([-+]?\d*\.\d+|\d+)\s*(\w+)')
 
     for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
         X = []
         val, unit = p.match(info[-1]['duration']).groups()
+        val = float( val )
+        if unit == 'ms' :
+            val *= 0.001
         duration_index = key[2].index('duration')
 
         # if 'RePro' in info[1] and info[1]['RePro'] == 'FileStimulus':
         #     embed()
         #     exit()
         sval, sunit = p.match(info[0]['sample interval%i' % trace_no]).groups()
+        sval = float( sval )
+        if sunit == 'ms' :
+            sval *= 0.001
 
-        assert unit == sunit, "Cannot convert between units in sampling interval and duration so far. "
-        l = int(float(val) / float(sval))
+        l = int(before / sval)
+        r = int((val+after) / sval)
 
         if dat.shape == (1,1) and dat[0,0] == 0:
             warnings.warn("iload_trace_trials: Encountered incomplete '-0' trial.")
@@ -113,9 +125,9 @@ def iload_trace_trials(basedir, trace_no):
 
 
         for col, duration in zip(asarray([e[trace_no - 1] for e in dat], dtype=int), asarray([e[duration_index] for e in dat], dtype=float32)):  #dat[:,trace_no-1].astype(int):
-            tmp = x[col:col + l]
+            tmp = x[col-l:col + r]
 
-            if duration < 1.: # if the duration is less than 1ms
+            if duration < 0.001: # if the duration is less than 1ms
                 warnings.warn("iload_trace_trials: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
                 continue
 
@@ -126,6 +138,75 @@ def iload_trace_trials(basedir, trace_no):
                 X.append(tmp)
 
         yield info, key, asarray(X)
+
+
+def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
+    """
+    returns:
+    info : metadata from stimuli.dat
+    key : key from stimuli.dat
+    time : an array for the time axis
+    data : the data of all traces of a single trial 
+    """
+    p = re.compile('([-+]?\d*\.\d+|\d+)\s*(\w+)')
+
+    # open traces files:
+    sf = []
+    for trace in xrange( 1, 1000000 ) :
+        if os.path.isfile( '%s/trace-%i.raw' % (basedir, trace) ) :
+            sf.append( open( '%s/trace-%i.raw' % (basedir, trace), 'rb' ) )
+        else :
+            break
+
+    for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
+
+        if len( repro ) > 0 and repro != info[1]['RePro'] :
+            continue
+        
+        val, unit = p.match(info[-1]['duration']).groups()
+        val = float( val )
+        if unit == 'ms' :
+            val *= 0.001
+        duration_index = key[2].index('duration')
+
+        sval, sunit = p.match(info[0]['sample interval%i' % 1]).groups()
+        sval = float( sval )
+        if sunit == 'ms' :
+            sval *= 0.001
+
+        l = int(before / sval)
+        r = int((val+after) / sval)
+
+        if dat.shape == (1,1) and dat[0,0] == 0:
+            warnings.warn("iload_trace_trials: Encountered incomplete '-0' trial.")
+            yield info, key, array([])
+            continue
+        
+        deltat, unit = p.match(info[0]['sample interval1']).groups()
+        deltat = float( deltat )
+        if unit == 'ms' :
+            deltat *= 0.001
+        time = arange( 0.0, r-l )*deltat - before
+
+        for d in dat :
+            duration = d[duration_index]
+            if duration < 0.001: # if the duration is less than 1ms
+                warnings.warn("iload_trace_trials: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+                continue
+
+            x = []
+            for trace in xrange( len( sf ) ) :
+                col = int(d[trace])
+                sf[trace].seek( (col-l)*4 )
+                buffer = sf[trace].read( (r-l)*4 )
+                tmp = fromstring(buffer, float32)
+                if len(x) > 0 and len(tmp) != len(x[0]):
+                    warnings.warn("iload_trace_trials: Setting one trial to NaN because it appears to be incomplete!")
+                    x.append(NaN*x[0])
+                else:
+                    x.append(tmp)
+
+            yield info, key, time, asarray( x )
 
 
 def iload(filename):

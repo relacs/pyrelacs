@@ -217,7 +217,6 @@ def get_unique_field(meta, pattern):
     else:
         return None
 
-
 def get_unique_value(meta, pattern):
     return getattr(meta, get_unique_field(meta, pattern))
 
@@ -275,7 +274,6 @@ def get_unique_field(meta, pattern):
         return field[0]
     else:
         return None
-
 
 def get_unique_value(meta, pattern):
     return getattr(meta, get_unique_field(meta, pattern))
@@ -376,7 +374,6 @@ class RelacsFile(object):
     def __repr__(self):
         return self.__str__()
 
-
 def _merge_stimspike_trials(blocks, filename):
     ret = []
 
@@ -421,7 +418,10 @@ class SpikeFile(RelacsFile):
                 tmp = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(b.start, b.end)])
                 data.append(tmp)
         elif isinstance(block, FileRange):
-            data = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(block.start, block.end)])
+            try:
+                data = np.array([float(linecache.getline(self.filename, i + 1)) for i in range(block.start, block.end)])
+            except:
+                data = (np.asarray([linecache.getline(self.filename, i + 1).strip().split() for i in range(block.start, block.end)])).astype(np.float)
 
         if loadkey:
             key = parse_key(key, self.filename)
@@ -430,7 +430,6 @@ class SpikeFile(RelacsFile):
             self.content[item_index] = (meta, key, data)
 
         return meta, key, data
-
 
 class StimuliFile(RelacsFile):
     def __init__(self, filename):
@@ -444,7 +443,6 @@ class StimuliFile(RelacsFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
-
 class BeatFile(RelacsFile):
     def __init__(self, filename):
         super(BeatFile, self).__init__(filename)
@@ -456,7 +454,6 @@ class BeatFile(RelacsFile):
         if replace:
             self.content[item_index] = (meta, key, data)
         return meta, key, data
-
 
 class TraceFile(RelacsFile):
     def __init__(self, filename):
@@ -481,8 +478,6 @@ class EventFile(RelacsFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
-
-
 class FICurveFile(StimuliFile):
     def __init__(self, filename):
         super(FICurveFile, self).__init__(filename)
@@ -495,4 +490,29 @@ class FICurveFile(StimuliFile):
             self.content[item_index] = (meta, key, data)
         return meta, key, data
 
-
+def read_info_file(file_name):
+    """
+    By dr Groovy, acutally.
+    Reads the info file and returns the stored metadata in a dictionary.
+    The dictionary may be nested.
+    @param file_name:  The name of the info file.
+    @return: dictionary, the stored information.
+    """
+    information = []
+    root = {}
+    with open(file_name, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            if not l.startswith("#"):
+                continue
+            l = l.strip("#").strip().strip(':')
+            if len(l) == 0:
+                continue
+            if not ": " in l:
+                sec = {}
+                root[l] = sec
+            else:
+                parts = l.split(': ')
+                sec[parts[0].strip()] = parts[1].strip()
+    information.append(root)
+    return information
