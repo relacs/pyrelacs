@@ -1,5 +1,6 @@
 from collections import defaultdict
 import linecache
+from pprint import pprint
 import types
 import warnings
 import numpy as np
@@ -9,7 +10,6 @@ from IPython import embed
 
 from .KeyLoaders import KeyFactory, parse_key, parse_stimuli_key, parse_ficurve_key
 from .MetaLoaders import parse_meta
-
 
 FileRange = namedtuple('FileRange', ['start', 'end', 'type'])
 MetaDataBlock = namedtuple('MetaDataBlock', ['meta', 'data'])
@@ -42,6 +42,7 @@ def parse_metadata_hierarchy(structure):
     See also: parse_structure
     """
     ret = []
+
     while len(structure) > 1:
         # pprint(structure)
         s = structure.pop(0)
@@ -59,13 +60,14 @@ def parse_metadata_hierarchy(structure):
 def get_properties(meta, parent=None):
     ret = set()
     if parent is None: parent = tuple()
-#    print meta
-    for m,v in meta.items():
+    #    print meta
+    for m, v in meta.items():
         if type(v) == dict:
             ret.update(get_properties(v, parent + (m,)))
         else:
             ret.add(parent + (m,))
     return ret
+
 
 def hierarchy2datablocks(hierarchy, key_factory, filename):
     ret = []
@@ -77,6 +79,7 @@ def hierarchy2datablocks(hierarchy, key_factory, filename):
         for block in newitems:
             properties.update(get_properties(block.meta))
     return ret, properties
+
 
 def parse_metadata_data_block(block, key_factory, filename, inherited_props=None):
     """
@@ -110,6 +113,7 @@ def parse_metadata_data_block(block, key_factory, filename, inherited_props=None
                 data=block.data
             )]
 
+
 def parse_structure(filename, verbose=False):
     """
     Parses the structure of a relacs file.
@@ -121,27 +125,34 @@ def parse_structure(filename, verbose=False):
     >>> structure, keys = parse_structure('stimspikes1.dat')
 
     """
-    if verbose: print(filename, 80*'-')
+    if verbose: print(filename, 80 * '-')
     within_key = within_meta_block = within_data_block = False
     start = None
     structure = []
     keys = []
+    empty_line_counter = 0
     with open(filename, 'r') as fid:
         for line_no, line in enumerate(fid):
             line = line.rstrip().lstrip()
             if not line:  # something ends
+                empty_line_counter += 1
+
                 if within_data_block:
                     structure.append(FileRange(start, line_no, 'data'))
                     within_data_block = False
                     if verbose: print("DATA END", line[:20], line_no)
-                if within_meta_block:
+                elif within_meta_block:
                     structure.append(FileRange(start, line_no, 'meta'))
                     if verbose: print("META END", line[:20], line_no)
                     within_meta_block = False
-                if within_key:
+                elif within_key:
                     if verbose: print("KEY END", line[:20], line_no)
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
+                elif empty_line_counter > 0:
+                    if verbose: print("EMPTY DATA", line[:20], line_no)
+                    structure.append(FileRange(line_no, line_no, 'data'))
+                    empty_line_counter = 0
                 start = None
                 continue
 
@@ -176,14 +187,39 @@ def parse_structure(filename, verbose=False):
 
         else:  # for loop ends
             if within_data_block:
-                if verbose: print("DATA END and FILE END", line[:20], line_no)
+                if verbose: print("DATA END", line[:20], line_no)
                 within_data_block = False
-                structure.append(FileRange(start, line_no+1, 'data'))
+                structure.append(FileRange(start, line_no + 1, 'data'))
+            elif within_key:
+                if verbose: print("KEY END", line[:20], line_no)
+                within_key = False
+                keys.append(FileRange(start, line_no+1, 'key'))
+                if verbose: print("EMPTY DATA", line[:20], line_no)
+                structure.append(FileRange(line_no, line_no, 'data'))
+
+            if verbose: print("FILE END", line[:20], line_no)
+
     return structure, keys
+
+
+def print_hierarchy(hierarchy, indent='', hlevel=0):
+    for h in hierarchy:
+        if isinstance(h, MetaDataBlock):
+            print(hlevel, indent, 'Meta from %i to %i' % (h.meta.start, h.meta.end))
+
+        if isinstance(h.data, list):
+            print_hierarchy(h.data, indent + ' ', hlevel+1)
+        elif isinstance(h.data, FileRange):
+            print(hlevel, indent, 'Data from %i to %i' % (h.data.start, h.data.end))
+        else:
+            print('What the hell is this?', h)
+
 
 def relacs_file_factory(obj, mergetrials=False):
     structure, keys = parse_structure(obj.filename)
     hierarchy = parse_metadata_hierarchy(structure)
+
+    print_hierarchy(hierarchy)  # TODO: remove
 
     key_factory = KeyFactory(keys, obj.filename)
     ret, fields = hierarchy2datablocks(hierarchy, key_factory, obj.filename)
@@ -191,7 +227,7 @@ def relacs_file_factory(obj, mergetrials=False):
         if obj.__class__ is SpikeFile:
             ret = _merge_stimspike_trials(ret, obj.filename)
         else:
-            warnings.warn("Cannot merge trials for %s" % (obj.__class__.__name__, ))
+            warnings.warn("Cannot merge trials for %s" % (obj.__class__.__name__,))
 
     obj.content = [(block.meta, block.key, block.data) for block in ret]
 
@@ -208,10 +244,11 @@ def relacs_file_factory(obj, mergetrials=False):
 
     return obj
 
+
 def get_unique_field(meta, pattern):
     field = meta.matching_fields(pattern)
-    if  len(field) > 1:
-        raise ValueError("More than one field found for !" % (pattern, ))
+    if len(field) > 1:
+        raise ValueError("More than one field found for !" % (pattern,))
     elif len(field) == 1:
         return field[0]
     else:
@@ -219,6 +256,7 @@ def get_unique_field(meta, pattern):
 
 def get_unique_value(meta, pattern):
     return getattr(meta, get_unique_field(meta, pattern))
+
 
 def get_nested_value(d, k):
     if type(k) is tuple:
@@ -229,6 +267,7 @@ def get_nested_value(d, k):
     else:
         return d[k]
 
+
 def get_subkey_key_value_pairs(d, k):
     properties = get_properties(d)
     ret_key = []
@@ -236,28 +275,29 @@ def get_subkey_key_value_pairs(d, k):
     for key in properties:
         if k in key:
             ret_key.append(key)
-            ret_val.append(get_nested_value(d,key))
+            ret_val.append(get_nested_value(d, key))
 
     return ret_key, ret_val
 
+
 def subkey_field_match(d, selection):
     for k, v in selection.items():
-        keys, v2 = get_subkey_key_value_pairs(d,k)
+        keys, v2 = get_subkey_key_value_pairs(d, k)
 
         if len(keys) > 1:
-            raise KeyError("Key %s is not unique!" % (k, ))
-        elif len(keys) ==0:
-            return  False
+            raise KeyError("Key %s is not unique!" % (k,))
+        elif len(keys) == 0:
+            return False
         elif v2[0] != v:
             return False
     else:
         return True
 
-def exact_nested_field_match(d, selection):
 
+def exact_nested_field_match(d, selection):
     for k, v in selection.items():
         try:
-            v2 = get_nested_value(d,k)
+            v2 = get_nested_value(d, k)
         except KeyError as e:
             return False
 
@@ -266,10 +306,11 @@ def exact_nested_field_match(d, selection):
     else:
         return True
 
+
 def get_unique_field(meta, pattern):
     field = meta.matching_fields(pattern)
-    if  len(field) > 1:
-        raise ValueError("More than one field found for !" % (pattern, ))
+    if len(field) > 1:
+        raise ValueError("More than one field found for !" % (pattern,))
     elif len(field) == 1:
         return field[0]
     else:
@@ -277,6 +318,7 @@ def get_unique_field(meta, pattern):
 
 def get_unique_value(meta, pattern):
     return getattr(meta, get_unique_field(meta, pattern))
+
 
 class RelacsFile(object):
     """
@@ -306,8 +348,6 @@ class RelacsFile(object):
                     (type(datas[i]) == list and isinstance(datas[i][0], FileRange)):
                 _, keys[i], datas[i] = self._load(j)
 
-
-
         return metas, keys, datas
 
     def data_blocks(self):
@@ -328,12 +368,10 @@ class RelacsFile(object):
         else:
             return ret
 
-
     def selectall(self):
         metas, keys, datas = list(map(list, list(zip(*self.content))))
         idx = list(range(len(self.content)))
         return self._finalize_selection(metas, keys, datas, idx)
-
 
     def _select(self, selectionfunc, selection=None, **kwargs):
         if selection is not None:
@@ -351,7 +389,6 @@ class RelacsFile(object):
                 idx.append(i)
         return self._finalize_selection(metas, keys, datas, idx)
 
-
     def _load(self, item_index, replace=True, loadkey=True):
         meta, key, block = self.content[item_index]
 
@@ -367,7 +404,7 @@ class RelacsFile(object):
     def __str__(self):
         tmp = []
         for k, v in self.fields.items():
-            tmp.append("%s: %s" % (k, ", ".join(map(str, v)), ))
+            tmp.append("%s: %s" % (k, ", ".join(map(str, v)),))
         return "%s with %i entries and field names:\n\t" % (self.__class__.__name__, len(self.content),) + "\n\t".join(
             tmp)
 
@@ -376,7 +413,6 @@ class RelacsFile(object):
 
 def _merge_stimspike_trials(blocks, filename):
     ret = []
-
 
     tmp = [blocks[0].data]
     first = last = blocks[0].meta['trial']
@@ -402,6 +438,7 @@ def _merge_stimspike_trials(blocks, filename):
             meta['trial'] = (first, last + 1)
             ret.append(DataBlock(meta=meta, key=key, data=tmp))
     return ret
+
 
 class SpikeFile(RelacsFile):
     def __init__(self, filename, mergetrials=True):
@@ -465,6 +502,7 @@ class TraceFile(RelacsFile):
         if replace:
             self.content[item_index] = (meta, key, data)
         return meta, key, data
+
 
 class EventFile(RelacsFile):
     def __init__(self, filename):
