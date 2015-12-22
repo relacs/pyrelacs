@@ -114,7 +114,7 @@ def parse_metadata_data_block(block, key_factory, filename, inherited_props=None
             )]
 
 
-def parse_structure(filename, verbose=False):
+def parse_structure(filename, verbose=True):
     """
     Parses the structure of a relacs file.
 
@@ -130,13 +130,10 @@ def parse_structure(filename, verbose=False):
     start = None
     structure = []
     keys = []
-    empty_line_counter = 0
     with open(filename, 'r') as fid:
         for line_no, line in enumerate(fid):
             line = line.rstrip().lstrip()
             if not line:  # something ends
-                empty_line_counter += 1
-
                 if within_data_block:
                     structure.append(FileRange(start, line_no, 'data'))
                     within_data_block = False
@@ -149,10 +146,6 @@ def parse_structure(filename, verbose=False):
                     if verbose: print("KEY END", line[:20], line_no)
                     within_key = False
                     keys.append(FileRange(start, line_no, 'key'))
-                elif empty_line_counter > 0:
-                    if verbose: print("EMPTY DATA", line[:20], line_no)
-                    structure.append(FileRange(line_no, line_no, 'data'))
-                    empty_line_counter = 0
                 start = None
                 continue
 
@@ -190,14 +183,14 @@ def parse_structure(filename, verbose=False):
                 if verbose: print("DATA END", line[:20], line_no)
                 within_data_block = False
                 structure.append(FileRange(start, line_no + 1, 'data'))
-            elif within_key:
-                if verbose: print("KEY END", line[:20], line_no)
-                within_key = False
-                keys.append(FileRange(start, line_no+1, 'key'))
-                if verbose: print("EMPTY DATA", line[:20], line_no)
-                structure.append(FileRange(line_no, line_no, 'data'))
-
             if verbose: print("FILE END", line[:20], line_no)
+    if 'base' in filename:
+        #----------------------------------
+        # TODO: Remove this later
+        from IPython import embed
+        embed()
+        exit()
+        #----------------------------------
 
     return structure, keys
 
