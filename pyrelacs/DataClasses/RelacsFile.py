@@ -114,7 +114,7 @@ def parse_metadata_data_block(block, key_factory, filename, inherited_props=None
             )]
 
 
-def parse_structure(filename, verbose=True):
+def parse_structure(filename, verbose=False):
     """
     Parses the structure of a relacs file.
 
@@ -184,13 +184,6 @@ def parse_structure(filename, verbose=True):
                 within_data_block = False
                 structure.append(FileRange(start, line_no + 1, 'data'))
             if verbose: print("FILE END", line[:20], line_no)
-    if 'base' in filename:
-        #----------------------------------
-        # TODO: Remove this later
-        from IPython import embed
-        embed()
-        exit()
-        #----------------------------------
 
     return structure, keys
 
@@ -211,8 +204,6 @@ def print_hierarchy(hierarchy, indent='', hlevel=0):
 def relacs_file_factory(obj, mergetrials=False):
     structure, keys = parse_structure(obj.filename)
     hierarchy = parse_metadata_hierarchy(structure)
-
-    print_hierarchy(hierarchy)  # TODO: remove
 
     key_factory = KeyFactory(keys, obj.filename)
     ret, fields = hierarchy2datablocks(hierarchy, key_factory, obj.filename)
