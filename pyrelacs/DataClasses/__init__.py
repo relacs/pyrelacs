@@ -8,7 +8,7 @@ def load(filename):
     elif re.match(".*stimspikes.*\.dat$", filename) or re.match(".*samallspikes.*\.dat$", filename):
         return SpikeFile(filename)
     elif re.match(".*ficurve-spikes.*\.dat$", filename) or re.match(".*stimulus-whitenoise-spikes.*\.dat$", filename) \
-            or re.match(".*saveevents.*\.dat$", filename):
+            or re.match(".*saveevents.*\.dat$", filename) or re.match(".*basespikes.*\.dat$", filename):
         return SpikeFile(filename, mergetrials=False)
     elif re.match(".*beats-eod.*\.dat$", filename):
         return BeatFile(filename)
@@ -21,7 +21,8 @@ def load(filename):
             or re.match(".*stimulus-whitenoise-trace.*\.dat$", filename) \
             or re.match(".*membraneresistance-trace.*\.dat$", filename) \
             or re.match(".*membraneresistance-expfit.*\.dat$", filename) \
-            or re.match(".*Whitenoise.*\.dat$", filename):
+            or re.match(".*Whitenoise.*\.dat$", filename) \
+            or re.match(".*baseisih.*\.dat$", filename):
         return TraceFile(filename)
     else:
         return RelacsFile(filename)
