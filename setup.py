@@ -9,7 +9,7 @@ setup(
     #license = "MIT",
     keywords = "data tool",
     #url = "http://packages.python.org/pycircstat",
-    packages=['pyrelacs'],
+    packages=['pyrelacs', 'pyrelacs.DataClasses'],
     #long_description=read('README'),
     classifiers=[
         "Development Status :: 3 - Alpha",
