@@ -1,7 +1,7 @@
-from IPython import embed
+from os import path
 from itertools import izip
 import types
-from numpy import array, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan
+from numpy import array, arange, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan, fromstring
 from numpy.core.records import fromarrays
 import nix
 import re
@@ -153,7 +153,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
     # open traces files:
     sf = []
     for trace in xrange( 1, 1000000 ) :
-        if os.path.isfile( '%s/trace-%i.raw' % (basedir, trace) ) :
+        if path.isfile( '%s/trace-%i.raw' % (basedir, trace) ) :
             sf.append( open( '%s/trace-%i.raw' % (basedir, trace), 'rb' ) )
         else :
             break
