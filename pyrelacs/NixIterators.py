@@ -1,5 +1,5 @@
 from IPython import embed
-import nix
+import nixio as nix
 import numpy as np
 
 def trial_iterator(multi_tag):
