@@ -178,7 +178,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
         r = int((val+after) / sval)
 
         if dat.shape == (1,1) and dat[0,0] == 0:
-            warnings.warn("iload_trace_trials: Encountered incomplete '-0' trial.")
+            warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
             yield info, key, array([])
             continue
         
@@ -186,22 +186,22 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
         deltat = float( deltat )
         if unit == 'ms' :
             deltat *= 0.001
-        time = arange( 0.0, r-l )*deltat - before
+        time = arange( 0.0, l+r )*deltat - before
 
         for d in dat :
             duration = d[duration_index]
             if duration < 0.001: # if the duration is less than 1ms
-                warnings.warn("iload_trace_trials: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+                warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
                 continue
 
             x = []
             for trace in xrange( len( sf ) ) :
                 col = int(d[trace])
                 sf[trace].seek( (col-l)*4 )
-                buffer = sf[trace].read( (r-l)*4 )
+                buffer = sf[trace].read( (l+r)*4 )
                 tmp = fromstring(buffer, float32)
                 if len(x) > 0 and len(tmp) != len(x[0]):
-                    warnings.warn("iload_trace_trials: Setting one trial to NaN because it appears to be incomplete!")
+                    warnings.warn("iload_traces: Setting one trial to NaN because it appears to be incomplete!")
                     x.append(NaN*x[0])
                 else:
                     x.append(tmp)
