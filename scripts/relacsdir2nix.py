@@ -8,7 +8,7 @@ import numpy as np
 from IPython import embed
 
 from pint import UnitRegistry
-import nix
+import nixio as nix
 
 
 from pyrelacs.DataClasses import load
