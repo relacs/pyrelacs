@@ -1,9 +1,12 @@
 from os import path
-from itertools import izip
+try:
+    from itertools import izip
+except:
+    izip = zip
 import types
 from numpy import array, arange, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan, fromstring
 from numpy.core.records import fromarrays
-import nixio as nix
+#import nixio as nix
 import re
 import warnings
 
