@@ -22,6 +22,7 @@ def load(filename):
             or re.match(".*membraneresistance-trace.*\.dat$", filename) \
             or re.match(".*membraneresistance-expfit.*\.dat$", filename) \
             or re.match(".*Whitenoise.*\.dat$", filename) \
+            or re.match(".*baserate.*\.dat$", filename) \
             or re.match(".*baseisih.*\.dat$", filename):
         return TraceFile(filename)
     else:
