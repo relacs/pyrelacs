@@ -155,7 +155,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
 
     # open traces files:
     sf = []
-    for trace in xrange( 1, 1000000 ) :
+    for trace in range(1, 1000000) :
         if path.isfile( '%s/trace-%i.raw' % (basedir, trace) ) :
             sf.append( open( '%s/trace-%i.raw' % (basedir, trace), 'rb' ) )
         else :
@@ -198,7 +198,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                 continue
 
             x = []
-            for trace in xrange( len( sf ) ) :
+            for trace in range(len(sf)) :
                 col = int(d[trace])
                 sf[trace].seek( (col-l)*4 )
                 buffer = sf[trace].read( (l+r)*4 )
