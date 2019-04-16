@@ -163,21 +163,23 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
     basecols = None
 
     for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
-        if not reproid in info[1]:
-            reproid = 'repro'
-
-        if len(repro) > 0 and repro != info[-1][reproid] and basecols is None:
-            continue
-        
-        baserp = (info[-1][reproid] == 'BaselineActivity')
-
-        duration_indices = [i for i, x in enumerate(key[2]) if x == "duration"]
-
         if deltat is None:
             deltat, tunit = p.match(info[0]['sample interval%i' % 1]).groups()
             deltat = float( deltat )
             if tunit == 'ms' :
                 deltat *= 0.001
+                
+        if 'repro' in info[-1] or 'RePro' in info[-1]:
+            if not reproid in info[-1]:
+                reproid = 'repro'
+            if len(repro) > 0 and repro != info[-1][reproid] and \
+               basecols is None:
+                continue
+            baserp = (info[-1][reproid] == 'BaselineActivity')
+            duration_indices = [i for i, x in enumerate(key[2]) if x == "duration"]
+        else:
+            baserp = True
+            duration_indices = []
 
         if dat.shape == (1,1) and dat[0,0] == 0:
             warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
@@ -191,29 +193,39 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
         for d in dat :
             if not baserp and not basecols is None:
                 x = []
+                xl = []
                 for trace in range(len(sf)) :
                     col = int(d[trace])
                     sf[trace].seek( basecols[trace]*4 )
                     buffer = sf[trace].read( (col - basecols[trace])*4 )
                     tmp = fromstring(buffer, float32)
                     x.append(tmp)
+                    xl.append(len(tmp))
+                ml = min(xl)
+                for k in range(len(x)):
+                    if len(x[k]) > ml:
+                        warnings.warn("trunkated trace %d to %d" % (k, ml))
+                        x[k] = x[k][:ml]
                 xtime = arange( 0.0, len(x[0]))*deltat - before
                 yield baseinfo, basekey, xtime, asarray( x )
                 basecols = None
                 if len(repro) > 0 and repro != info[-1][reproid]:
                     break
 
-            duration = max([d[i] for i in duration_indices if not isnan(d[i])])
-            if duration < 0.001: # if the duration is less than 1ms
-                warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
-                continue
-            l = int(before / deltat)
-            r = int((duration+after) / deltat)
+            if len(duration_indices) > 0:
+                duration = max([d[i] for i in duration_indices if not isnan(d[i])])
+                if duration < 0.001: # if the duration is less than 1ms
+                    warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+                    continue
+                l = int(before / deltat)
+                r = int((duration+after) / deltat)
             x = []
             xl = []
             for trace in range(len(sf)) :
                 col = int(d[trace])
                 if baserp:
+                    if col < 0:
+                        col = 0
                     basecols.append(col)
                     continue
                 sf[trace].seek( (col-l)*4 )
@@ -223,7 +235,6 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                 xl.append(len(tmp))
             if baserp:
                 break
-                
             ml = min(xl)
             for k in range(len(x)):
                 if len(x[k]) > ml:
