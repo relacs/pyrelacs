@@ -400,7 +400,7 @@ def open_any(filename, mode = 'rt'):
     to .dat files.
     
     :param filename: Filename of the data file.
-    :param mode: mode in which the file will be opened. default: read-only
+    :param mode: mode in which the file will be opened. default: read-only,text-mode (important for .gz)
     :type filename: string
     :returns:  a file containing the data to be read
     :rtype: file
