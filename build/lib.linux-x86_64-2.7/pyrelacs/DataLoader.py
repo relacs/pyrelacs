@@ -9,7 +9,6 @@ from numpy.core.records import fromarrays
 #import nixio as nix
 import re
 import warnings
-import gzip
 
 identifiers = {
     'stimspikes1.dat': lambda info: ('RePro' in info[-1] and info[-1]['RePro'] == 'FileStimulus'),
@@ -257,7 +256,7 @@ def iload(filename):
     currkey = None
     data = []
 
-    with open_any(filename, 'rt') as fid:
+    with open(filename, 'r') as fid:
         for line in fid:
 
             line = line.rstrip().lstrip()
@@ -338,7 +337,7 @@ def load(filename):
     :rtype: tuple
 
     """
-    with open_any(filename, 'rt') as fid:
+    with open(filename, 'r') as fid:
         L = [l.lstrip().rstrip() for l in fid.readlines()]
 
     ret = []
@@ -397,20 +396,5 @@ def load(filename):
             
             
 
-def open_any(filename, mode = 'rt'):
-    '''allows opening of .gz compressed files in addition
-    to .dat files.
-    
-    :param filename: Filename of the data file.
-    :param mode: mode in which the file will be opened. default: read-only,text-mode (important for .gz)
-    :type filename: string
-    :returns:  a file containing the data to be read
-    :rtype: file
-    '''
-    
-    if filename.endswith(".gz"):
-        return gzip.open(filename, mode)
-    else:
-        return open(filename, mode)
 
 

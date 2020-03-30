@@ -395,14 +395,12 @@ def load(filename):
 
     return tuple(ret)
             
-            
-
 def open_any(filename, mode = 'rt'):
     '''allows opening of .gz compressed files in addition
     to .dat files.
     
     :param filename: Filename of the data file.
-    :param mode: mode in which the file will be opened. default: read-only,text-mode (important for .gz)
+    :param mode: mode in which the file will be opened. default: read-only
     :type filename: string
     :returns:  a file containing the data to be read
     :rtype: file
