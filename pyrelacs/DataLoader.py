@@ -1,9 +1,12 @@
 from os import path
-from itertools import izip
+try:
+    from itertools import izip
+except:
+    izip = zip
 import types
 from numpy import array, arange, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan, fromstring
 from numpy.core.records import fromarrays
-import nixio as nix
+#import nixio as nix
 import re
 import warnings
 
@@ -107,9 +110,6 @@ def iload_trace_trials(basedir, trace_no=1, before=0.0, after=0.0 ):
             val *= 0.001
         duration_index = key[2].index('duration')
 
-        # if 'RePro' in info[1] and info[1]['RePro'] == 'FileStimulus':
-        #     embed()
-        #     exit()
         sval, sunit = p.match(info[0]['sample interval%i' % trace_no]).groups()
         sval = float( sval )
         if sunit == 'ms' :
@@ -149,64 +149,102 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
     data : the data of all traces of a single trial 
     """
     p = re.compile('([-+]?\d*\.\d+|\d+)\s*(\w+)')
+    reproid = 'RePro'
+    deltat = None
 
     # open traces files:
     sf = []
-    for trace in xrange( 1, 1000000 ) :
+    for trace in range(1, 1000000) :
         if path.isfile( '%s/trace-%i.raw' % (basedir, trace) ) :
             sf.append( open( '%s/trace-%i.raw' % (basedir, trace), 'rb' ) )
         else :
             break
 
+    basecols = None
+
     for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
-
-        if len( repro ) > 0 and repro != info[1]['RePro'] :
-            continue
-        
-        val, unit = p.match(info[-1]['duration']).groups()
-        val = float( val )
-        if unit == 'ms' :
-            val *= 0.001
-        duration_index = key[2].index('duration')
-
-        sval, sunit = p.match(info[0]['sample interval%i' % 1]).groups()
-        sval = float( sval )
-        if sunit == 'ms' :
-            sval *= 0.001
-
-        l = int(before / sval)
-        r = int((val+after) / sval)
+        if deltat is None:
+            deltat, tunit = p.match(info[0]['sample interval%i' % 1]).groups()
+            deltat = float( deltat )
+            if tunit == 'ms' :
+                deltat *= 0.001
+                
+        if 'repro' in info[-1] or 'RePro' in info[-1]:
+            if not reproid in info[-1]:
+                reproid = 'repro'
+            if len(repro) > 0 and repro != info[-1][reproid] and \
+               basecols is None:
+                continue
+            baserp = (info[-1][reproid] == 'BaselineActivity')
+            duration_indices = [i for i, x in enumerate(key[2]) if x == "duration"]
+        else:
+            baserp = True
+            duration_indices = []
 
         if dat.shape == (1,1) and dat[0,0] == 0:
             warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
             yield info, key, array([])
             continue
         
-        deltat, unit = p.match(info[0]['sample interval1']).groups()
-        deltat = float( deltat )
-        if unit == 'ms' :
-            deltat *= 0.001
-        time = arange( 0.0, l+r )*deltat - before
-
+        if baserp:
+            basecols = []
+            basekey = key
+            baseinfo = info
         for d in dat :
-            duration = d[duration_index]
-            if duration < 0.001: # if the duration is less than 1ms
-                warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
-                continue
+            if not baserp and not basecols is None:
+                x = []
+                xl = []
+                for trace in range(len(sf)) :
+                    col = int(d[trace])
+                    sf[trace].seek( basecols[trace]*4 )
+                    buffer = sf[trace].read( (col - basecols[trace])*4 )
+                    tmp = fromstring(buffer, float32)
+                    x.append(tmp)
+                    xl.append(len(tmp))
+                ml = min(xl)
+                for k in range(len(x)):
+                    if len(x[k]) > ml:
+                        warnings.warn("trunkated trace %d to %d" % (k, ml))
+                        x[k] = x[k][:ml]
+                xtime = arange( 0.0, len(x[0]))*deltat - before
+                yield baseinfo, basekey, xtime, asarray( x )
+                basecols = None
+                if len(repro) > 0 and repro != info[-1][reproid]:
+                    break
 
+            if len(duration_indices) > 0:
+                duration = max([d[i] for i in duration_indices if not isnan(d[i])])
+                if duration < 0.001: # if the duration is less than 1ms
+                    warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+                    continue
+                l = int(before / deltat)
+                r = int((duration+after) / deltat)
             x = []
-            for trace in xrange( len( sf ) ) :
+            xl = []
+            for trace in range(len(sf)) :
                 col = int(d[trace])
+                if baserp:
+                    if col < 0:
+                        col = 0
+                    basecols.append(col)
+                    continue
                 sf[trace].seek( (col-l)*4 )
                 buffer = sf[trace].read( (l+r)*4 )
                 tmp = fromstring(buffer, float32)
-                if len(x) > 0 and len(tmp) != len(x[0]):
-                    warnings.warn("iload_traces: Setting one trial to NaN because it appears to be incomplete!")
-                    x.append(NaN*x[0])
-                else:
-                    x.append(tmp)
-
+                x.append(tmp)
+                xl.append(len(tmp))
+            if baserp:
+                break
+            ml = min(xl)
+            for k in range(len(x)):
+                if len(x[k]) > ml:
+                    warnings.warn("trunkated trace %d to %d" % (k, ml))
+                    x[k] = x[k][:ml]
+            time = arange( 0.0, len(x[0]) )*deltat - before
             yield info, key, time, asarray( x )
+            
+    for trace in range(len(sf)) :
+        sf[trace].close()
 
 
 def iload(filename):
