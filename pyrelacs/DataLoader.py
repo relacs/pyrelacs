@@ -162,6 +162,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
             break
 
     basecols = None
+    baserp = True
 
     for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
         if deltat is None:
@@ -186,11 +187,14 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
             warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
             yield info, key, array([])
             continue
-        
+
         if baserp:
             basecols = []
             basekey = key
             baseinfo = info
+            if len(dat) == 0:
+                for trace in range(len(sf)) :
+                    basecols.append(0)
         for d in dat :
             if not baserp and not basecols is None:
                 x = []
@@ -214,8 +218,8 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                     break
 
             durations = [d[i] for i in duration_indices if not isnan(d[i])]
-            if len(durations) > 0:
-                duration = np.max(durations)
+            if not baserp and len(durations) > 0:
+                duration = max(durations)
                 if duration < 0.001: # if the duration is less than 1ms
                     warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
                     continue
@@ -252,6 +256,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
 def iload(filename):
     meta_data = []
     new_meta_data = []
+    same_new_meta_data = 0
     key = []
 
     within_key = within_meta_block = within_data_block = False
@@ -261,7 +266,7 @@ def iload(filename):
     with open_any(filename, 'rt') as fid:
         for line in fid:
 
-            line = line.rstrip().lstrip()
+            line = line.strip()
 
             if within_data_block and (line.startswith('#') or not line):
                 within_data_block = False
@@ -292,18 +297,28 @@ def iload(filename):
                 if not within_meta_block:
                     within_meta_block = True
                     new_meta_data.append({})
+                    same_new_meta_data = 0
 
                 if ':' in line:
-                    tmp = [e.rstrip().lstrip() for e in line[1:].split(':')]
+                    tmp = [e.strip() for e in line[1:].split(':')]
                 elif '=' in line:
-                    tmp = [e.rstrip().lstrip() for e in line[1:].split('=')]
+                    tmp = [e.strip() for e in line[1:].split('=')]
                 else:
-                    currkey = line[1:].rstrip().lstrip()
+                    currkey = line[1:].strip()
                     new_meta_data[-1][currkey] = {}
                     continue
 
                 if currkey is None:
                     new_meta_data[-1][tmp[0]] = tmp[1]
+                    if len(new_meta_data) > 1 and tmp[0] in new_meta_data[-2]:
+                        same_new_meta_data += 1
+                    # same meta data block without data inbetween:
+                    if same_new_meta_data > 2:
+                        n = len(new_meta_data) - 1
+                        meta_data[-n:] = new_meta_data[:-1]
+                        new_meta_data = [new_meta_data[-1]]
+                        same_new_meta_data = 0
+                        yield list(meta_data), tuple(key), array([])
                 else:
                     new_meta_data[-1][currkey][tmp[0]] = tmp[1]
 
