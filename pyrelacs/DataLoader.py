@@ -4,7 +4,7 @@ try:
 except:
     izip = zip
 import types
-from numpy import array, arange, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan, fromstring
+from numpy import array, arange, NaN, fromfile, float32, asarray, unique, squeeze, Inf, isnan, fromstring, max
 from numpy.core.records import fromarrays
 #import nixio as nix
 import re
@@ -213,8 +213,9 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                 if len(repro) > 0 and repro != info[-1][reproid]:
                     break
 
-            if len(duration_indices) > 0:
-                duration = max([d[i] for i in duration_indices if not isnan(d[i])])
+            durations = [d[i] for i in duration_indices if not isnan(d[i])]
+            if len(durations) > 0:
+                duration = np.max(durations)
                 if duration < 0.001: # if the duration is less than 1ms
                     warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
                     continue
