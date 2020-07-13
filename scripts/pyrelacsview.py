@@ -21,7 +21,7 @@ for info, key, data in dl.iload(datapath+'stimulus-sine-traces.dat'):
 
 # load only responses of repro 'SingleStimulus' from the traces*.raw:
 for info, key, time, data in dl.iload_traces(datapath, repro='SingleStimulus', before=0.0, after=0.0):
-    print info[1]['RePro']   # these are metadata from the stimuli.dat file
+    print(info[1]['RePro'])   # these are metadata from the stimuli.dat file
     plt.plot(time, data[0])  # V(t)
     plt.show()
 

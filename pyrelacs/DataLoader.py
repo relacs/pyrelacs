@@ -218,13 +218,16 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                     break
 
             durations = [d[i] for i in duration_indices if not isnan(d[i])]
-            if not baserp and len(durations) > 0:
-                duration = max(durations)
-                if duration < 0.001: # if the duration is less than 1ms
-                    warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+            if not baserp:
+                if len(durations) > 0:
+                    duration = max(durations)
+                    if duration < 0.001: # if the duration is less than 1ms
+                        warnings.warn("iload_traces: Skipping one trial because its duration is <1ms and therefore it is probably rubbish")
+                        continue
+                    l = int(before / deltat)
+                    r = int((duration+after) / deltat)
+                else:
                     continue
-                l = int(before / deltat)
-                r = int((duration+after) / deltat)
             x = []
             xl = []
             for trace in range(len(sf)) :
