@@ -185,7 +185,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
 
         if dat.shape == (1,1) and dat[0,0] == 0:
             warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
-            yield info, key, array([])
+            yield info, key, array([]), array([])
             continue
 
         if baserp:
@@ -217,7 +217,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                 if len(repro) > 0 and repro != info[-1][reproid]:
                     break
 
-            durations = [d[i] for i in duration_indices if not isnan(d[i])]
+            durations = [0.001*d[i] if key[3][i] == 'ms' else d[i] for i in duration_indices if not isnan(d[i])]
             if not baserp:
                 if len(durations) > 0:
                     duration = max(durations)
