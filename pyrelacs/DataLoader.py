@@ -164,7 +164,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
     basecols = None
     baserp = True
 
-    for info, key, dat in iload('%s/stimuli.dat' % (basedir,)):
+    for info, key, dat in iload('%s/stimuli.dat' % basedir, False):
         if deltat is None:
             deltat, tunit = p.match(info[0]['sample interval%i' % 1]).groups()
             deltat = float( deltat )
@@ -183,7 +183,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
             baserp = True
             duration_indices = []
 
-        if dat.shape == (1,1) and dat[0,0] == 0:
+        if len(dat) == 1 and len(dat[0]) == 1 and dat[0,0] == 0:
             warnings.warn("iload_traces: Encountered incomplete '-0' trial.")
             yield info, key, array([]), array([])
             continue
@@ -217,7 +217,7 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                 if len(repro) > 0 and repro != info[-1][reproid]:
                     break
 
-            durations = [0.001*d[i] if key[3][i] == 'ms' else d[i] for i in duration_indices if not isnan(d[i])]
+            durations = [0.001*d[i] if key[3][i] == 'ms' else d[i] for i in duration_indices if isfloat(d[i]) and not isnan(d[i])]
             if not baserp:
                 if len(durations) > 0:
                     duration = max(durations)
@@ -250,13 +250,19 @@ def iload_traces(basedir, repro='', before=0.0, after=0.0 ):
                     warnings.warn("trunkated trace %d to %d" % (k, ml))
                     x[k] = x[k][:ml]
             time = arange( 0.0, len(x[0]) )*deltat - before
-            yield info, key, time, asarray( x )
+            keyd = key + (tuple(d),)
+            yield info, keyd, time, asarray( x )
             
     for trace in range(len(sf)) :
         sf[trace].close()
 
 
-def iload(filename):
+def iload(filename, return_array=True):
+    """
+    return_array: bool
+        If True return data of the table as numpy array,
+        otherwise as tuple (that preserves numbers and strings).
+    """
     meta_data = []
     new_meta_data = []
     same_new_meta_data = 0
@@ -274,7 +280,10 @@ def iload(filename):
             if within_data_block and (line.startswith('#') or not line):
                 within_data_block = False
 
-                yield list(meta_data), tuple(key), array(data)
+                if return_array:
+                    yield list(meta_data), tuple(key), array(data)
+                else:
+                    yield list(meta_data), tuple(key), data
                 data = []
 
             # Key parsing
@@ -321,7 +330,10 @@ def iload(filename):
                         meta_data[-n:] = new_meta_data[:-1]
                         new_meta_data = [new_meta_data[-1]]
                         same_new_meta_data = 0
-                        yield list(meta_data), tuple(key), array([])
+                        if return_array:
+                            yield list(meta_data), tuple(key), array([])
+                        else:
+                            yield list(meta_data), tuple(key), []
                 else:
                     new_meta_data[-1][currkey][tmp[0]] = tmp[1]
 
@@ -334,10 +346,16 @@ def iload(filename):
                     new_meta_data = []
                     currkey = None
                     within_key = within_meta_block = False
-                data.append([float(e) if (e != '-0' and isfloat(e)) else NaN for e in line.split()])
+                if return_array:
+                    data.append([float(e) if (e != '-0' and isfloat(e)) else NaN for e in line.split()])
+                else:
+                    data.append([float(e) if (e != '-0' and isfloat(e)) else e for e in line.split()])
         else:  # if for loop is finished, return the data we have so far
             if within_data_block and len(data) > 0:
-                yield list(meta_data), tuple(key), array(data)
+                if return_array:
+                    yield list(meta_data), tuple(key), array(data)
+                else:
+                    yield list(meta_data), tuple(key), data
 
 
 def recload(filename):
